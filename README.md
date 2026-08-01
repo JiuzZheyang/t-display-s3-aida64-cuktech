@@ -94,7 +94,7 @@ idf.py flash monitor
 
 ```
 1. 按住 BOOT 键 → 按 RESET 键 → 松开 BOOT（进入下载模式）
-2. 打开 Chrome/Edge 浏览器，搜索「ESP Web Serial」
+2. 打开 Chrome/Edge 浏览器，访问 ESP Web 烧录工具页面
 3. 点击「连接」→ 选择对应的 COM 端口
 4. 在「编程」页面，选择 firmware 目录下的 .bin 文件，起始地址对应填写：
    - 0x0        → bootloader.bin
