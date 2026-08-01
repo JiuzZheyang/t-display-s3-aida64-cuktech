@@ -252,6 +252,8 @@ AIDA64 页面 ──── 检测到充电数据 ────▶ 充电页面
 | **配置页** | `http://<设备IP>/config` | 修改 WiFi、AIDA64、巴法云等设置 |
 | **API** | `http://<设备IP>/api/ports` | JSON 格式端口数据 |
 
+> **提示：** 设备连接 WiFi 成功后，启动动画界面会显示设备 IP 地址。
+
 ### 🏠 巴法云智能家居
 
 通过 MQTT 连接巴法云，实现小爱同学 / 小度音箱语音控制：
@@ -302,8 +304,6 @@ AIDA64 页面 ──── 检测到充电数据 ────▶ 充电页面
 | **BLE Key** | ❌ | 充电头的 BLE 认证密钥 |
 | **启用巴法云** | ❌ | 开启后可用小爱/小度语音控制 |
 | **巴法云 UID** | ❌ | 巴法云私钥（32 位十六进制）|
-| **AppID** | ❌ | 巴法云连接密钥 AppID |
-| **SecretKey** | ❌ | 巴法云连接密钥 SecretKey |
 
 **获取充电头的蓝牙信息：**
 
@@ -429,33 +429,45 @@ curl -X POST http://<设备IP>/api/ports -H "Content-Type: application/json" -d 
 
 ```
 t-display-s3-aida64-cuktech/
-├── main/                          # 核心源码
-│   ├── main.c                     # 主入口、任务调度
-│   ├── ui.c / ui.h                # LVGL UI (AIDA64 + 充电页面)
-│   ├── http_server.c / .h         # Web 仪表盘 + REST API
-│   ├── ble_manager.c / .h         # BLE 连接 + MiOT 协议
-│   ├── bemfa.c / .h               # 巴法云 MQTT 客户端
-│   ├── wifi_prov.c / .h           # WiFi 配网
-│   ├── config_store.c / .h        # NVS 配置存储
-│   ├── settings.c / .h            # AIDA64 设置
-│   ├── queue_msg.h                # BLE 消息队列
-│   ├── bt_icons.h                 # 蓝牙图标位图
-│   └── CMakeLists.txt
+├── .github/
+│   └── workflows/
+│       └── build.yml               # GitHub Actions 自动构建
 ├── components/
-│   └── bsp/                       # 板级支持 (按键、LCD)
-├── fonts/                         # 自定义字体文件
-├── firmware/                      # 预编译固件
-│   ├── bootloader.bin
-│   ├── partition-table.bin
-│   └── t_display_s3_aida64.bin
-├── .github/workflows/             # GitHub Actions CI
-├── sdkconfig                      # ESP-IDF 配置
-├── sdkconfig.defaults             # 默认配置
-├── partitions.csv                 # 分区表定义
-├── CMakeLists.txt                 # 顶层 CMake
-├── .gitignore
-├── README.md                   # 中文文档（本文件）
-└── README.md                      # 英文文档
+│   └── bsp/                        # 板级支持包
+│       ├── backlight.c / .h        # LCD 背光驱动
+│       ├── button.c / .h           # 按键驱动（BOOT / KEY）
+│       └── lcd_i80.c / .h         # LCD 并口驱动
+├── firmware/                        # 预编译固件（可直接烧录）
+│   ├── bootloader.bin              # 引导程序
+│   ├── partition-table.bin          # 分区表
+│   └── t_display_s3_aida64.bin     # 主程序
+├── fonts/                          # 内置字库文件
+├── main/                           # 主应用源码
+│   ├── aida64.c / .h               # AIDA64 网络协议 / 传感器解析
+│   ├── battery.c / .h              # 电池 / 电量计（预留）
+│   ├── bemfa.c / .h                # 巴法云 MQTT 客户端
+│   ├── ble_manager.c / .h          # 蓝牙连接 / MiOT 协议
+│   ├── boot_anim.c / .h            # 开机启动动画
+│   ├── config_store.c / .h         # NVS 配置存储读写
+│   ├── display_config.c / .h       # 屏幕显示项配置（SIV）
+│   ├── http_server.c / .h          # HTTP 服务器 / Web 仪表盘 / REST API
+│   ├── lv_port.c / .h              # LVGL 初始化 / 端口适配
+│   ├── main.c                      # 任务调度 / 系统入口
+│   ├── miot_auth.c / .h            # 米家 BLE 认证
+│   ├── miot_protocol.c / .h        # 米家 MiOT 通信协议
+│   ├── queue_msg.h                 # BLE 消息队列定义
+│   ├── settings.c / .h             # AIDA64 / WiFi 配置管理
+│   ├── ui.c / .h                   # LVGL 界面（充电页 / AIDA64 页）
+│   ├── wifi_prov.c / .h            # WiFi 配网（AP + SoftAP）
+│   ├── bt_icons.h                  # 蓝牙状态图标位图
+│   └── CMakeLists.txt
+├── managed_components/              # ESP-IDF 管理的外部组件
+│   ├── espressif__esp_lvgl_port/
+│   └── lvgl__lvgl/
+├── partitions.csv                   # Flash 分区表
+├── sdkconfig.defaults              # ESP-IDF 默认配置
+├── CMakeLists.txt                  # 顶层 CMake
+└── README.md                       # 本文件
 ```
 
 ---
