@@ -73,7 +73,7 @@
 ### 编译
 
 ```bash
-git clone https://github.com/JiuzZheyang/t-display-s3-aida64-cuktech-cuktech.git
+git clone https://github.com/JiuzZheyang/t-display-s3-aida64-cuktech.git
 cd t-display-s3-aida64-cuktech
 idf.py set-target esp32s3
 idf.py build
@@ -85,7 +85,7 @@ idf.py build
 # 1. 按住 BOOT 键
 # 2. 按一下 RESET 键
 # 3. 松开 BOOT 键（进入下载模式）
-idf.py -p COM10 flash monitor
+idf.py flash monitor
 ```
 
 ### 在线烧录（网页）
@@ -94,7 +94,7 @@ idf.py -p COM10 flash monitor
 
 ```
 1. 按住 BOOT 键 → 按 RESET 键 → 松开 BOOT（进入下载模式）
-2. 打开 Chrome/Edge 浏览器，访问：https://web.espressif.com
+2. 打开 Chrome/Edge 浏览器，搜索「ESP Web Serial」或访问 web.espressif.com
 3. 点击「连接」→ 选择对应的 COM 端口
 4. 在「编程」页面，选择 firmware 目录下的 .bin 文件，起始地址对应填写：
    - 0x0        → bootloader.bin
@@ -110,7 +110,7 @@ idf.py -p COM10 flash monitor
 ```bash
 # 1. 按住 BOOT → 按 RESET → 松 BOOT（进入下载模式）
 # 2. 运行以下命令：
-python -m esptool --chip esp32s3 -p COM10 write_flash \
+python -m esptool --chip esp32s3 -p  write_flash \
   0x0 firmware/bootloader.bin \
   0x10000 firmware/t_display_s3_aida64.bin \
   0x8000 firmware/partition-table.bin
@@ -150,13 +150,25 @@ python -m esptool --chip esp32s3 -p COM10 write_flash \
 - 在 **远程 LCD 监控** 中设置端口号（默认 `7789`）
 - 点击 **确定** 保存
 
-**步骤 3：配置设备**
+**步骤 3：配置 LCD 项目**
+
+文件 → 设置 → LCD → LCD项目，按顺序添加以下项目：
+1. CPU使用率
+2. GPU使用率
+3. CPU温度
+4. GPU温度
+5. CPU功率
+6. GPU功率
+7. 内存使用率
+8. 已用内存
+
+**步骤 4：配置设备**
 
 方式一（推荐）：设备首次启动后连接 WiFi `AIDA64-Setup` → 浏览器打开 `192.168.4.1` → 输入 AIDA64 电脑 IP 和端口
 
 方式二：在 Web 仪表盘 (`http://<设备IP>/config`) 中直接修改
 
-**步骤 4：验证**
+**步骤 5：验证**
 
 - 设备屏幕显示电脑硬件数据
 - 如无数据，检查防火墙是否放行 AIDA64 端口
@@ -392,6 +404,25 @@ python -m xiaomi_cloud_tokens_extractor
 }
 ```
 
+### 局域网 curl 命令示例
+
+获取端口数据：
+```bash
+curl http://<设备IP>/api/ports
+```
+
+控制端口开关：
+```bash
+# 启用 C1 端口
+curl -X POST http://<设备IP>/api/ports -H "Content-Type: application/json" -d '{"port":"C1","enabled":true}'
+
+# 禁用 C2 端口
+curl -X POST http://<设备IP>/api/ports -H "Content-Type: application/json" -d '{"port":"C2","enabled":false}'
+
+# 启用 USB-A 端口
+curl -X POST http://<设备IP>/api/ports -H "Content-Type: application/json" -d '{"port":"A","enabled":true}'
+```
+
 ---
 
 ## 📁 项目结构
@@ -435,4 +466,4 @@ t-display-s3-aida64-cuktech/
 
 ---
 
-> 💡 **提示：** 如遇到问题，请先检查串口日志（`idf.py monitor`）获取详细错误信息。欢迎提交 [Issues](https://github.com/JiuzZheyang/t-display-s3-aida64-cuktech-cuktech/issues) 和 [Pull Requests](https://github.com/JiuzZheyang/t-display-s3-aida64-cuktech-cuktech/pulls)。
+> 💡 **提示：** 如遇到问题，请先检查串口日志（`idf.py monitor`）获取详细错误信息。欢迎提交 [Issues](https://github.com/JiuzZheyang/t-display-s3-aida64-cuktech/issues) 和 [Pull Requests](https://github.com/JiuzZheyang/t-display-s3-aida64-cuktech/pulls)。
