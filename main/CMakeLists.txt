@@ -1,0 +1,46 @@
+idf_component_register(
+    SRCS "main.c"
+         "aida64.c"
+         "battery.c"
+         "bemfa.c"
+         "ble_manager.c"
+         "boot_anim.c"
+         "config_store.c"
+         "display_config.c"
+         "font_cn_18.c"
+         "font_num_32.c"
+         "font_num_48.c"
+         "frick_14.c"
+         "frick_22.c"
+         "frick_32.c"
+         "frick_48.c"
+         "frick_64.c"
+         "frick_cond_72.c"
+         "frick_cond_80.c"
+         "frick_cond_96.c"
+         "http_server.c"
+         "lv_port.c"
+         "miot_auth.c"
+         "miot_protocol.c"
+         "settings.c"
+         "ui.c"
+         "wifi_prov.c"
+    INCLUDE_DIRS "."
+    PRIV_REQUIRES esp_wifi
+                  esp_event
+                  nvs_flash
+                  esp_netif
+                  esp_http_server
+                  esp_http_client
+                  mqtt
+                  bt
+                  esp_lcd
+                  esp_timer
+                  mbedtls
+                  esp_adc
+                  json
+                  lwip
+                  bsp
+                  espressif__esp_lvgl_port
+                  lvgl__lvgl
+)

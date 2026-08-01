@@ -1,0 +1,37 @@
+# Build output
+build/
+*.pyc
+__pycache__/
+*.o
+*.a
+*.so
+*.elf
+*.map
+
+# ESP-IDF
+sdkconfig
+sdkconfig.old
+dependencies.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Python venv
+venv/
+env/
+
+# WorkBuddy project data
+.workbuddy/
+
+# Firmware binaries (rebuild with `idf.py build` then use `git add -f` to include)
+firmware/*.bin
