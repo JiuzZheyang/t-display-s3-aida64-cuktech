@@ -535,6 +535,7 @@ static int32_t ch_cur_total = 0;
 
 static void ui_init_charger_screen(void)
 {
+    if (charger_scr) return;  /* 防止重复初始化 */
     charger_scr = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(charger_scr, lv_color_hex(0x000000), 0);
     lv_obj_set_style_bg_opa(charger_scr, LV_OPA_COVER, 0);
@@ -773,7 +774,10 @@ void ui_update_charger_detail(float powers[], float voltages[], float currents[]
         /* 无数据且不在充电页面，只记录总功率避免后续误触发 */
         return;
     }
-    lvgl_port_lock(0);
+    /* 用 try_lock(10ms) 避免与 LVGL 任务死锁导致 WDT 触发 */
+    if (!lvgl_port_lock(10)) {
+        return; /* 10ms内拿不到锁则跳过本次更新 */
+    }
 
     /* 计算总功率，检查是否有活跃端口 */
     float total = 0;

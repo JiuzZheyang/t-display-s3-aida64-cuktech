@@ -41,6 +41,7 @@ idf_component_register(
                   json
                   lwip
                   bsp
+                  spiffs
                   espressif__esp_lvgl_port
                   lvgl__lvgl
 )

@@ -79,6 +79,11 @@ static bool port_ctrl_valid = true;
 static bool ble_enabled = true;
 static bool ble_ready_flag = false;
 
+/* 倒计时追踪：记录 PIID 9/10/11/12 设置时的时间戳（秒） */
+static uint32_t cd_set_time[4] = {0, 0, 0, 0};
+static uint32_t cd_set_val[4]  = {0, 0, 0, 0};  /* 设置时的倒计时值（分钟） */
+static int      cd_action[4]   = {0, 0, 0, 0};  /* 倒计时到点后的目标动作：1=开启, -1=关闭, 0=无 */
+
 bool ble_get_ready_flag(void) {
     return ble_ready_flag;
 }
@@ -136,6 +141,27 @@ static cJSON* get_settings_json(void) {
     }
     UNLOCK_STATE();
     cJSON_AddBoolToObject(root, "ble_enabled", ble_manager_is_enabled());
+
+    /* 实时倒计时剩余秒数 */
+    uint32_t now = esp_timer_get_time() / 1000000;
+    cJSON *cd = cJSON_CreateArray();
+    for (int i = 0; i < 4; i++) {
+        cJSON *item = cJSON_CreateObject();
+        if (cd_set_time[i] > 0 && cd_set_val[i] > 0) {
+            uint32_t elapsed = now - cd_set_time[i];
+            int32_t remain = (int32_t)(cd_set_val[i] * 60) - (int32_t)elapsed;
+            if (remain < 0) remain = 0;
+            cJSON_AddNumberToObject(item, "remain", remain);      /* 剩余秒 */
+            cJSON_AddNumberToObject(item, "total",  cd_set_val[i] * 60); /* 总秒 */
+            cJSON_AddNumberToObject(item, "action", cd_action[i]); /* 1=到时开启, -1=到时关闭, 0=无 */
+        } else {
+            cJSON_AddNumberToObject(item, "remain", 0);
+            cJSON_AddNumberToObject(item, "total",  0);
+            cJSON_AddNumberToObject(item, "action", 0);
+        }
+        cJSON_AddItemToArray(cd, item);
+    }
+    cJSON_AddItemToObject(root, "cd_remains", cd);
     return root;
 }
 
@@ -260,7 +286,22 @@ static void ble_task(void *arg) {
                     if (ok) {
                         LOCK_STATE();
                         if (cmd.piid < 32) { settings[cmd.piid] = val; settings_valid[cmd.piid] = true; }
-                        if (cmd.piid == 16) { port_ctrl_val = val; port_ctrl_valid = true; ui_set_port_mask(val); }
+                        if (cmd.piid == 16) {
+                            uint32_t old_val = port_ctrl_val;
+                            port_ctrl_val = val; port_ctrl_valid = true;
+                            ui_set_port_mask(val);
+                            /* 端口被关闭时，同步清除对应倒计时（否则 Web 一直显示倒计时值） */
+                            for (int i = 0; i < 4; i++) {
+                                bool was_on = (old_val >> i) & 1;
+                                bool now_on  = (val >> i) & 1;
+                                if (was_on && !now_on && i < 4) {
+                                    settings[9 + i] = 0;
+                                    settings_valid[9 + i] = true;
+                                    cd_set_time[i] = 0; cd_set_val[i] = 0; cd_action[i] = 0;
+                                    ESP_LOGI(TAG, "Port %d off, cleared countdown timer PIID %d", i, 9 + i);
+                                }
+                            }
+                        }
                         if (cmd.piid == 21) { protocol_extend_val = val; ble_manager_store_setting(21, val); }
                         UNLOCK_STATE();
                         ESP_LOGI(TAG, "GET piid=%d = %lu", cmd.piid, (unsigned long)val);
@@ -275,8 +316,37 @@ static void ble_task(void *arg) {
                     bool ok = ble_manager_miot_set(cmd.piid, cmd.value);
                     if (ok) {
                         LOCK_STATE();
-                        if (cmd.piid == 16) { port_ctrl_val = cmd.value; port_ctrl_valid = true; ui_set_port_mask(cmd.value); }
-                        else if (cmd.piid < 32) { settings[cmd.piid] = cmd.value; settings_valid[cmd.piid] = true; }
+                        if (cmd.piid == 16) {
+                            uint32_t old_val = port_ctrl_val;
+                            port_ctrl_val = cmd.value; port_ctrl_valid = true; ui_set_port_mask(cmd.value);
+                            for (int i = 0; i < 4; i++) {
+                                bool was_on = (old_val >> i) & 1;
+                                bool now_on  = (cmd.value >> i) & 1;
+                                if (was_on && !now_on && i < 4) {
+                                    settings[9 + i] = 0;
+                                    settings_valid[9 + i] = true;
+                                    cd_set_time[i] = 0; cd_set_val[i] = 0; cd_action[i] = 0;
+                                }
+                            }
+                        }
+                        else if (cmd.piid < 32) { 
+                            settings[cmd.piid] = cmd.value; settings_valid[cmd.piid] = true;
+                            /* 倒计时 PIID 9/10/11/12：记录设置时间，根据端口状态决定目标动作 */
+                            if (cmd.piid >= 9 && cmd.piid <= 12) {
+                                int idx = cmd.piid - 9;
+                                if (cmd.value > 0) {
+                                    cd_set_time[idx] = esp_timer_get_time() / 1000000; /* 秒 */
+                                    cd_set_val[idx]  = cmd.value;                   /* 分钟 */
+                                    /* 端口当前开启→到时关闭，端口当前关闭→到时开启 */
+                                    int port_on = (port_ctrl_val >> idx) & 1;
+                                    cd_action[idx] = port_on ? -1 : 1;
+                                    ESP_LOGI(TAG, "Countdown set: PIID %d = %lu min, action=%d (port=%s)",
+                                             cmd.piid, (unsigned long)cmd.value, cd_action[idx], port_on ? "on" : "off");
+                                } else {
+                                    cd_set_time[idx] = 0; cd_set_val[idx] = 0; cd_action[idx] = 0;
+                                }
+                            }
+                        }
                         if (cmd.piid == 21) { protocol_extend_val = cmd.value; ble_manager_store_setting(21, cmd.value); }
                         UNLOCK_STATE();
                         ESP_LOGI(TAG, "SET piid=%d val=%lu OK", cmd.piid, (unsigned long)cmd.value);
@@ -405,6 +475,11 @@ static void app_task(void *arg) {
                         BleCommand c = {CMD_GET, READABLE_PIIDS[i], 0, 0};
                         xQueueSend(cmd_queue, &c, 0);
                     }
+                } else {
+                    /* BLE 断连：清零端口数据 */
+                    LOCK_STATE();
+                    for (int j = 0; j < 4; j++) port_data[j].active = false;
+                    UNLOCK_STATE();
                 }
                 break;
             }
@@ -412,6 +487,28 @@ static void app_task(void *arg) {
             }
         }
         bemfa_loop();
+
+        /* 倒计时到点检测：设置到时间后执行目标动作（开启/关闭对应端口） */
+        {
+            uint32_t now = esp_timer_get_time() / 1000000;
+            for (int i = 0; i < 4; i++) {
+                if (cd_set_time[i] > 0 && cd_set_val[i] > 0 && cd_action[i] != 0) {
+                    uint32_t elapsed = now - cd_set_time[i];
+                    if (elapsed >= (uint32_t)cd_set_val[i] * 60) {
+                        bool target_on = (cd_action[i] == 1);
+                        ESP_LOGI(TAG, "Countdown expired: port %d -> %s", i, target_on ? "ON" : "OFF");
+                        /* 发送端口控制命令 */
+                        BleCommand c = {CMD_PORT, (uint8_t)i, target_on ? 1 : 0, 0};
+                        xQueueSend(urgent_queue, &c, 0);
+                        /* 清除倒计时状态 */
+                        LOCK_STATE();
+                        cd_set_time[i] = 0; cd_set_val[i] = 0; cd_action[i] = 0;
+                        settings[9 + i] = 0; settings_valid[9 + i] = true;
+                        UNLOCK_STATE();
+                    }
+                }
+            }
+        }
 
         /* 处理 AIDA64 暂停/恢复（由按键任务设置标志位） */
         /* 背光关闭后延迟5秒关AIDA64，背光亮起时立即恢复 */
