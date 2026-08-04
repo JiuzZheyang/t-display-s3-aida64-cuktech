@@ -91,14 +91,23 @@ idf.py flash monitor
 
 无需安装任何软件，直接用浏览器烧录固件：
 
+**烧录工具：** https://xinyuan-lilygo.github.io/Launchpad/
+
+**固件文件：**
+
+| 文件 | 烧录地址 |
+|------|----------|
+| `bootloader.bin` | `0x0` |
+| `partition-table.bin` | `0x8000` |
+| `t_display_s3_aida64.bin` | `0x10000` |
+
+**操作步骤：**
+
 ```
 1. 按住 BOOT 键 → 按 RESET 键 → 松开 BOOT（进入下载模式）
-2. 打开 Chrome/Edge 浏览器，访问 ESP Web 烧录工具页面
-3. 点击「连接」→ 选择对应的 COM 端口
-4. 在「编程」页面，选择 firmware 目录下的 .bin 文件，起始地址对应填写：
-   - 0x0        → bootloader.bin
-   - 0x10000    → t_display_s3_xxx.bin
-   - 0x8000     → partition-table.bin
+2. 打开 Chrome/Edge 浏览器，访问 https://xinyuan-lilygo.github.io/Launchpad/
+3. 点击「自定义烧录」→ 点击「连接设备」→ 选择对应的 COM 端口
+4. 在「编程」页面，按以下表格添加三个固件文件并填写起始地址：
 5. 点击「开始编程」，等待完成自动重启
 ```
 
