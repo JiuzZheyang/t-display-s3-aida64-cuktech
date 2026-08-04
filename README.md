@@ -108,7 +108,7 @@ idf.py flash monitor
 2. 打开 Chrome/Edge 浏览器，访问 https://xinyuan-lilygo.github.io/Launchpad/
 3. 点击「自定义烧录」→ 点击「连接设备」→ 选择对应的 COM 端口
 4. 在「编程」页面，按以下表格添加三个固件文件并填写起始地址：
-5. 点击「开始编程」，等待完成自动重启
+5. 点击「烧录固件」，等待烧录完成即可
 ```
 
 ### 预编译固件烧录
